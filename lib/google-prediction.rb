@@ -7,7 +7,6 @@
 $:.unshift(File.dirname(__FILE__)) unless
   $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
 
-require 'rubygems'
 require 'curb'
 require 'json'
 
@@ -16,29 +15,29 @@ module GooglePrediction
 
   # = Usage
   #
-  # auth_token = GooglePrediction.client_login('foo@gmail.com', 'password')
+  # auth_token = GooglePrediction.get_auth_token('foo@gmail.com', 'password')
   #   => long string of letters and numbers
   #
   # predictor = GooglePrediction.new(auth_token, 'bucket', 'object')
   #
-  # predictor.#invoke_training
+  # predictor.#train
   #   => {"data"=>{"data"=>"bucket/object"}}
   #
-  # predictor.#get_training_status
+  # predictor.#check_training
   #   => "Training has not completed"
   # 
   # wait_some_time
   # 
-  # predictor.#get_training_status
+  # predictor.#check_training
   #   => "no estimate available" or something between "0.0" and "1.0"
   # 
-  # predictor.#get_prediction "awesome company"
+  # predictor.#predict "awesome company"
   #   => "Google"
-  # predictor.#get_prediction "awesome nonprofit"
+  # predictor.#predict "awesome nonprofit"
   #   => "InSTEDD"
-  # predictor.#get_prediction 13
+  # predictor.#predict 13
   #   => "lucky"
-  # predictor.#get_prediction [3, 5, 7, 11]
+  # predictor.#predict [3, 5, 7, 11]
   #   => "prime"
   class GooglePrediction
     PREDICTION_URL_PREFIX = 'https://www.googleapis.com/prediction/v1/training'
@@ -54,7 +53,7 @@ module GooglePrediction
     # instructions at  
     # http://code.google.com/apis/predict/docs/getting-started.html
     # and pass in the new URL and new arguments using the optional parameters.
-    def self.client_login(email, password, url='https://www.google.com/accounts/ClientLogin', args={}) 
+    def self.get_auth_token(email, password, url='https://www.google.com/accounts/ClientLogin', args={}) 
       curl = Curl::Easy.new(url)
       post_args = {
         "accountType" => "HOSTED_OR_GOOGLE",
@@ -69,7 +68,7 @@ module GooglePrediction
       curl.body_str.match('Auth.*')[0][5..-1]
     end
 
-    # auth_code: the login code generated from self.client_login
+    # auth_code: the login code generated from self.get_auth_token
     #
     # bucket: the name of the bucket in Google Storage
     #
@@ -80,24 +79,6 @@ module GooglePrediction
       @object=object
     end
 
-    # Wrapper.  Creates a new object and runs invoke_training on it.
-    def self.invoke_training(auth_code, bucket, object)
-      predictor = GooglePrediction.new(auth_code, bucket, object)
-      predictor.invoke_training
-    end
-
-    # Wrapper.  Creates a new object and runs get_training_status on it.
-    def self.get_training_status(auth_code, bucket, object)
-      predictor = GooglePrediction.new(auth_code, bucket, object)
-      predictor.get_training_status
-    end
-
-    # Wrapper.  Creates a new object and runs get_prediction on it.
-    def self.get_prediction(auth_code, bucket, object, submission)
-      predictor = GooglePrediction.new(auth_code, bucket, object)
-      predictor.get_prediction(submission)
-    end
-
     # Starts training on the specified object.  
     # 
     # Returns 
@@ -105,7 +86,7 @@ module GooglePrediction
     # on success, and 
     #   {"errors"=>{"errors"=>[{all of your errors}], "code"=>code, "message"=>message}}
     # on error.
-    def invoke_training
+    def train
       url = PREDICTION_URL_PREFIX + "?data=" + @bucket + "%2F" + @object
       curl = Curl::Easy.new(url)
       curl.post_body = JSON.generate({:data => {}})
@@ -126,7 +107,7 @@ module GooglePrediction
     # Returns
     #   {"errors"=>{"errors"=>[{all of your errors}], "code"=>code, "message"=>message}}
     # on error.
-    def get_training_status
+    def check_training
       url = PREDICTION_URL_PREFIX + "/" + @bucket + "%2F" + @object
       curl = Curl::Easy.new(url)
       curl.headers = {"Authorization" => "GoogleLogin auth=#{@auth_code}"}
@@ -148,7 +129,7 @@ module GooglePrediction
     # Returns the prediction on success and
     #   {"errors"=>{"errors"=>[{all of your errors}], "code"=>code, "message"=>message}}
     # on error. 
-    def get_prediction(submission)
+    def predict(submission)
       url = PREDICTION_URL_PREFIX + "/" + @bucket + "%2F" + @object + "/predict"
       curl = Curl::Easy.new(url)
       post_body = {:data => {:input => {}}}
@@ -172,6 +153,24 @@ module GooglePrediction
       response = JSON.parse(curl.body_str)
       return response["data"]["output"]["output_label"] unless response["data"].nil?
       return response
+    end
+
+    # Wrapper.  Creates a new object and runs #train on it.
+    def self.train(auth_code, bucket, object)
+      predictor = GooglePrediction.new(auth_code, bucket, object)
+      predictor.train
+    end
+
+    # Wrapper.  Creates a new object and runs #check_training on it.
+    def self.check_training(auth_code, bucket, object)
+      predictor = GooglePrediction.new(auth_code, bucket, object)
+      predictor.check_training
+    end
+
+    # Wrapper.  Creates a new object and runs #predict on it.
+    def self.predict(auth_code, bucket, object, submission)
+      predictor = GooglePrediction.new(auth_code, bucket, object)
+      predictor.predict(submission)
     end
 
   end

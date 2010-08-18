@@ -16,8 +16,8 @@ Predicts outputs when given new input}
   s.files = [
     "lib/google-prediction.rb",
   ]
-  s.add_dependency('curb', '=> 0.7.7.1')
-  s.add_dependency('json', '=> 1.4.3')
+  s.add_dependency('curb', '>= 0.7.7.1')
+  s.add_dependency('json', '>= 1.4.3')
 
   s.has_rdoc = true
 

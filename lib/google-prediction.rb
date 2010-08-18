@@ -67,7 +67,10 @@ class GooglePrediction
     curl.body_str.match('Auth.*')[0][5..-1]
   end
 
-  # auth_code: the login code generated from self.get_auth_token
+  # auth_code: the login code generated from self.get_auth_token.
+  # If you get your auth_code from somewhere else, make sure that
+  # it doesn't include any extra characters like a newline at the
+  # end.  That can cause bizarre errors.
   #
   # bucket: the name of the bucket in Google Storage
   #

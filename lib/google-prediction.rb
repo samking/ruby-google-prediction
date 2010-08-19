@@ -124,7 +124,7 @@ class GooglePrediction
   end
 
   # Submission must be either a string, a single number, 
-  # or an array of numbers
+  # or an array of strings or numbers
   # 
   # Gets the prediction for the label of the submission based on the training.
   # 
@@ -135,14 +135,13 @@ class GooglePrediction
     url = PREDICTION_URL_PREFIX + "/" + @bucket + "%2F" + @object + "/predict"
     curl = Curl::Easy.new(url)
     post_body = {:data => {:input => {}}}
-    if submission.is_a? String
-      post_body[:data][:input] = {:text => [submission]}
-    elsif submission.is_a? Fixnum
-      post_body[:data][:input] = {:numeric => [submission]}
-    elsif submission.is_a? Array
+    submission = [submission] unless submission.is_a? Array
+    if submission[0].is_a? String
+      post_body[:data][:input] = {:text => submission}
+    elsif submission[0].is_a? Fixnum
       post_body[:data][:input] = {:numeric => submission}
     else
-      raise Exception.new("submission must be String, Fixnum, or Array")
+      raise Exception.new("submission must be String, Fixnum, or Array of Strings / Fixnums")
     end
     curl.post_body = JSON.generate(post_body)
     curl.headers = {"Content-Type" => "application/json", 
